@@ -35,7 +35,7 @@ class Settings:
     # Vision
     vision_provider: str = _env("VISION_PROVIDER", "anthropic").lower()
     anthropic_api_key: str = _env("ANTHROPIC_API_KEY")
-    anthropic_vision_model: str = _env("ANTHROPIC_VISION_MODEL", "claude-haiku-4-5")
+    anthropic_vision_model: str = _env("ANTHROPIC_VISION_MODEL", "claude-haiku-5-5")
     openai_api_key: str = _env("OPENAI_API_KEY")
     openai_vision_model: str = _env("OPENAI_VISION_MODEL", "gpt-4o-mini")
 
@@ -62,6 +62,39 @@ class Settings:
     weight_dense: float = float(_env("WEIGHT_DENSE", "1.0"))
     weight_bm25: float = float(_env("WEIGHT_BM25", "0.8"))
     weight_visual: float = float(_env("WEIGHT_VISUAL", "0.6"))
+
+    # LLM (Week 3)  provider: anthropic | openai | ollama (Llama etc. via OpenAI-compatible API)
+    llm_provider: str = _env("LLM_PROVIDER", "anthropic").lower()
+    llm_model: str = _env("LLM_MODEL", "")
+    llm_base_url: str = _env("LLM_BASE_URL", "")  # e.g. http://localhost:11434/v1 for Ollama
+    llm_max_tokens: int = int(_env("LLM_MAX_TOKENS", "700"))
+    retrieval_k: int = int(_env("RETRIEVAL_K", "5"))
+
+    # Voice
+    tts_provider: str = _env("TTS_PROVIDER", "edge").lower()  # edge | openai | piper | none
+    tts_voice_en: str = _env("TTS_VOICE_EN", "en-IN-NeerjaNeural")
+    tts_voice_hi: str = _env("TTS_VOICE_HI", "hi-IN-SwaraNeural")
+    piper_model_en: str = _env("PIPER_MODEL_EN", "")
+    piper_model_hi: str = _env("PIPER_MODEL_HI", "")
+    stt_provider: str = _env("STT_PROVIDER", "whisper").lower()  # whisper | fake
+    stt_model: str = _env("STT_MODEL", "")       # blank = WHISPER_MODEL; or fine-tuned path
+    vad_silence_ms: int = int(_env("VAD_SILENCE_MS", "700"))
+    barge_in: bool = _env("BARGE_IN", "true").lower() in {"1", "true", "yes"}
+
+    def default_llm_model(self) -> str:
+        return self.llm_model or {
+            "anthropic": "claude-haiku-5-5",
+            "openai": "gpt-4o-mini",
+            "ollama": "llama3.1:8b",
+        }.get(self.llm_provider, "")
+
+    @property
+    def metrics_path(self) -> Path:
+        return self.root / "data" / "logs" / "metrics.jsonl"
+
+    @property
+    def feedback_path(self) -> Path:
+        return self.root / "data" / "logs" / "feedback.jsonl"
 
     def __post_init__(self) -> None:
         self.raw_dir = self.raw_dir or self.root / "data" / "raw"

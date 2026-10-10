@@ -12,10 +12,12 @@ Set QDRANT_URL to use a Qdrant server / Qdrant Cloud instead of local files.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import logging
 import os
+import threading
 from collections import Counter
 from pathlib import Path
 from typing import Iterator, Optional
@@ -46,11 +48,21 @@ def make_filter(source: Optional[str] = None,
     return models.Filter(must=must) if must else None
 
 
+def _locked(fn):
+    """Serialize client access: embedded Qdrant is not safe for concurrent writers."""
+    @functools.wraps(fn)
+    def wrapper(self, *a, **kw):
+        with self._lock:
+            return fn(self, *a, **kw)
+    return wrapper
+
+
 class VectorStore:
     def __init__(self, path: Path, text_dim: int, image_dim: int,
                  text_model: str = "", image_model: str = ""):
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.RLock()
         url = os.getenv("QDRANT_URL")
         self.client = (QdrantClient(url=url, api_key=os.getenv("QDRANT_API_KEY") or None)
                        if url else QdrantClient(path=str(self.path / "qdrant")))
@@ -101,12 +113,14 @@ class VectorStore:
         (path / "meta.json").unlink(missing_ok=True)
 
     # ---------------------------------------------------------------- write
+    @_locked
     def delete_source(self, source: str) -> None:
         flt = models.FilterSelector(filter=make_filter(source=source))
         self.client.delete(CHUNKS, points_selector=flt)
         self.client.delete(IMAGES, points_selector=flt)
         self.version += 1
 
+    @_locked
     def add_chunks(self, chunks: list[Chunk], vectors: np.ndarray) -> None:
         if not chunks:
             return
@@ -118,6 +132,7 @@ class VectorStore:
         self.client.upsert(CHUNKS, points=points)
         self.version += 1
 
+    @_locked
     def add_images(self, records: list[dict], vectors: np.ndarray) -> None:
         """records: {chunk_id, image_path, source, modality, timestamp|None, page|None}"""
         if not records:
@@ -131,16 +146,19 @@ class VectorStore:
         self.version += 1
 
     # ----------------------------------------------------------------- read
+    @_locked
     def search_text(self, vec: np.ndarray, k: int, flt=None) -> list[tuple[str, float]]:
         res = self.client.query_points(CHUNKS, query=vec.tolist(), limit=k,
                                        query_filter=flt, with_payload=["chunk_id"])
         return [(p.payload["chunk_id"], p.score) for p in res.points]
 
+    @_locked
     def search_images(self, vec: np.ndarray, k: int, flt=None) -> list[tuple[str, float, str]]:
         res = self.client.query_points(IMAGES, query=vec.tolist(), limit=k,
                                        query_filter=flt, with_payload=True)
         return [(p.payload["chunk_id"], p.score, p.payload["image_path"]) for p in res.points]
 
+    @_locked
     def get_chunks(self, ids: list[str]) -> dict[str, Chunk]:
         if not ids:
             return {}
@@ -151,15 +169,17 @@ class VectorStore:
     def iter_chunks(self, flt=None, batch: int = 256) -> Iterator[Chunk]:
         offset = None
         while True:
-            pts, offset = self.client.scroll(CHUNKS, scroll_filter=flt, limit=batch,
-                                             offset=offset, with_payload=True)
+            with self._lock:
+                pts, offset = self.client.scroll(CHUNKS, scroll_filter=flt, limit=batch,
+                                                 offset=offset, with_payload=True)
             for p in pts:
                 yield Chunk(**{k: v for k, v in p.payload.items() if k != "chunk_id"})
             if offset is None:
                 break
 
+    @_locked
     def stats(self) -> dict:
-        by_source = Counter(c.source for c in self.iter_chunks())
+        by_source = Counter(c.source for c in self.iter_chunks())  # RLock: re-entrant
         return {
             "chunks": self.client.count(CHUNKS).count,
             "images": self.client.count(IMAGES).count,

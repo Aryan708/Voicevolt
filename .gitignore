@@ -8,3 +8,4 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 data/index/
+data/logs/

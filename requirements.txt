@@ -23,3 +23,12 @@ rank_bm25>=0.2.2
 # Dev
 reportlab>=4.0               # tests only
 pytest>=8.0
+
+# Week 3 - server + voice
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+edge-tts>=6.1                # default TTS (free neural voices, en-IN + hi-IN)
+webrtcvad-wheels>=2.0.14     # optional: more robust VAD than the built-in energy VAD
+# piper-tts>=1.2             # optional: fully offline TTS
+httpx>=0.27                  # tests (FastAPI TestClient)

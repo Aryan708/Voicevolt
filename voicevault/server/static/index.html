@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceVault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f3ee; --panel:#fffdf9; --ink:#1d1c1a; --muted:#6b675f; --line:#e4dfd4;
+  --accent:#c8641e; --accent-soft:#f6e3d3; --ok:#2f7d55; --bad:#b3412f; --chip:#efeae0;
+  --shadow:0 1px 2px rgba(30,25,15,.06),0 4px 16px rgba(30,25,15,.05);
+  --sans:"IBM Plex Sans","IBM Plex Sans Devanagari",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141412; --panel:#1c1b19; --ink:#ece8df; --muted:#9a958a; --line:#2e2c28;
+  --accent:#e58a45; --accent-soft:#3a2a1d; --ok:#5fb889; --bad:#e07563; --chip:#26241f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);display:grid;
+  grid-template-columns:300px 1fr;height:100vh;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.mono{font-family:var(--mono)}
+
+/* ---------- sidebar ---------- */
+aside{border-right:1px solid var(--line);padding:20px 18px;display:flex;flex-direction:column;
+  gap:18px;overflow-y:auto;background:var(--panel)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--bg);
+  display:grid;place-items:center;font-weight:600}
+.brand h1{font-size:17px;margin:0;font-weight:600;letter-spacing:-.01em}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:-2px}
+.section h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 8px;font-weight:600}
+.drop{display:block;cursor:pointer;line-height:1.6;border:1.5px dashed var(--line);border-radius:10px;padding:16px;text-align:center;
+  color:var(--muted);font-size:13px;transition:.15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.drop b{color:var(--ink);font-weight:500}
+.drop input{display:none}
+.lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.lib li{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px}
+.lib li:hover{background:var(--chip)}
+.lib .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib .n{color:var(--muted);font-family:var(--mono);font-size:11px}
+.job{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;padding:3px 8px}
+.job.err{color:var(--bad)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.dot.live{background:var(--accent);animation:pulse 1s infinite}
+.dot.ok{background:var(--ok)}
+@keyframes pulse{50%{opacity:.3}}
+.settings label{display:flex;justify-content:space-between;align-items:center;font-size:13px;
+  padding:5px 0}
+.settings select{font:inherit;font-size:13px;background:var(--chip);color:var(--ink);
+  border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.health{margin-top:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);
+  line-height:1.6;word-break:break-all}
+
+/* ---------- main ---------- */
+main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);height:100vh;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;
+  border-bottom:1px solid var(--line)}
+.top .title{font-weight:500}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px}
+.ghost:hover{background:var(--chip)}
+#chat{overflow-y:auto;padding:28px 0 12px;scroll-behavior:smooth}
+.wrap{max-width:780px;margin:0 auto;padding:0 28px}
+.empty{text-align:center;color:var(--muted);margin-top:12vh}
+.empty h3{color:var(--ink);font-weight:500;font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+.suggest{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
+.suggest button{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:7px 14px;font-size:13px;box-shadow:var(--shadow)}
+.msg{margin:0 0 22px}
+.msg.user{display:flex;justify-content:flex-end}
+.msg.user .bubble{background:var(--ink);color:var(--bg);border-radius:14px 14px 4px 14px;
+  padding:9px 14px;max-width:80%}
+.msg.user .meta{font-size:11px;color:var(--muted);text-align:right;margin-top:3px}
+.msg.bot .text{white-space:pre-wrap}
+.msg.bot .text.thinking::after{content:"▍";animation:pulse .8s infinite;color:var(--accent)}
+.cite{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;
+  margin:0 1px;border-radius:5px;border:0;background:var(--accent-soft);color:var(--accent);
+  font:600 11px var(--mono);vertical-align:2px}
+.status-line{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;gap:6px;align-items:center}
+.sources{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.src{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  box-shadow:var(--shadow);text-align:left;padding:0;display:flex;flex-direction:column;
+  transition:transform .12s,border-color .12s}
+.src:hover{transform:translateY(-1px);border-color:var(--accent)}
+.src.flash{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.src .thumb{aspect-ratio:16/9;background:var(--chip) center top/cover no-repeat;border-bottom:1px solid var(--line);position:relative}
+.src .thumb .badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.65);color:#fff;
+  font:500 11px var(--mono);padding:2px 6px;border-radius:5px}
+.src .thumb .play{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;
+  color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);opacity:.9}
+.src .body{padding:9px 11px 10px;font-size:12.5px}
+.src .cit{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:500}
+.src .snip{color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;overflow:hidden}
+.src .tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.tag{font:500 10px var(--mono);background:var(--chip);color:var(--muted);padding:1px 5px;border-radius:4px}
+.foot{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.lat{font:11px var(--mono);color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.lat b{color:var(--ink);font-weight:500}
+.fb{display:flex;gap:4px;margin-left:auto}
+.fb button{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px}
+.fb button.on{background:var(--accent-soft);border-color:var(--accent)}
+.interrupted{font-size:12px;color:var(--muted);font-style:italic;margin-top:4px}
+
+/* ---------- composer ---------- */
+.composer{border-top:1px solid var(--line);padding:14px 0 18px;background:var(--bg)}
+.row{display:flex;gap:12px;align-items:center}
+.mic{width:54px;height:54px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);
+  display:grid;place-items:center;flex:none;position:relative;transition:transform .1s}
+.mic:active{transform:scale(.96)}
+.mic svg{width:22px;height:22px}
+.mic .ring{position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--accent);
+  opacity:0;transform:scale(var(--lvl,1));transition:transform .08s}
+.mic.on{background:var(--accent)}
+.mic.on .ring{opacity:.55}
+.mic.speech .ring{opacity:1}
+form.ask{flex:1;display:flex;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+form.ask input{flex:1;min-width:0;border:0;background:none;color:var(--ink);font:inherit;padding:14px 16px;outline:none}
+form.ask button{border:0;background:none;padding:0 16px;color:var(--accent);font-weight:600}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;min-height:18px;display:flex;gap:6px;align-items:center}
+
+/* ---------- modal ---------- */
+dialog{border:0;border-radius:14px;padding:0;background:var(--panel);color:var(--ink);
+  max-width:min(960px,94vw);width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,10,8,.55)}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;
+  border-bottom:1px solid var(--line);font-size:14px}
+.mbody{padding:0;background:#000;display:grid;place-items:center;max-height:75vh}
+.mbody video,.mbody img{max-width:100%;max-height:75vh;display:block}
+.mbody audio{width:90%;margin:30px}
+.mtext{padding:12px 16px;font-size:13px;color:var(--muted);white-space:pre-wrap;max-height:22vh;overflow:auto}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);
+  color:var(--bg);padding:9px 16px;border-radius:9px;font-size:13px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media (max-width:860px){
+  body{grid-template-columns:minmax(0,1fr)}
+  aside{display:none}
+  aside.open{display:flex;position:fixed;inset:0 20% 0 0;z-index:5;box-shadow:var(--shadow)}
+  .wrap{padding:0 16px}.top{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+  <div class="brand">
+    <div class="brand-mark">V</div>
+    <div><h1>VoiceVault</h1><small>Ask your meetings, docs &amp; slides</small></div>
+  </div>
+
+  <div class="section">
+    <h2>Add to library</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" multiple
+        accept=".mp4,.mkv,.mov,.webm,.m4v,.avi,.mp3,.wav,.m4a,.flac,.ogg,.aac,.opus,.pdf,.pptx,.ppt,.docx,.doc,.odp,.png,.jpg,.jpeg,.webp,.tif,.tiff,.bmp">
+      <b>Drop files</b> or click<br>video · audio · pdf · pptx · scans
+    </label>
+    <div id="jobs"></div>
+  </div>
+
+  <div class="section">
+    <h2>Library <span id="libcount" class="mono"></span></h2>
+    <ul class="lib" id="lib"></ul>
+  </div>
+
+  <div class="section settings">
+    <h2>Settings</h2>
+    <label>Language
+      <select id="lang"><option value="">Auto</option><option value="en">English</option><option value="hi">हिन्दी</option></select>
+    </label>
+    <label>Speak answers <input type="checkbox" id="speak" checked></label>
+    <label>Interrupt by talking <input type="checkbox" id="barge" checked></label>
+  </div>
+
+  <div class="health" id="health">connecting…</div>
+</aside>
+
+<main>
+  <div class="top">
+    <button class="ghost" id="menu" style="display:none">☰</button>
+    <div class="title">Conversation</div>
+    <button class="ghost" id="newchat">New chat</button>
+  </div>
+
+  <div id="chat"><div class="wrap" id="msgs">
+    <div class="empty" id="empty">
+      <h3>Ask anything about your files</h3>
+      <div>Tap the mic and speak in English or Hindi, or type below.</div>
+      <div class="suggest">
+        <button>What decisions were made in the last meeting?</button>
+        <button>Summarise the key numbers from the slides</button>
+        <button>पिछली मीटिंग में क्या तय हुआ?</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="composer"><div class="wrap">
+    <div class="row">
+      <button class="mic" id="mic" title="Hands-free voice (click to start/stop)">
+        <span class="ring"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg>
+      </button>
+      <form class="ask" id="ask">
+        <input id="q" placeholder="Ask a question…" autocomplete="off">
+        <button>Ask</button>
+      </form>
+    </div>
+    <div class="hint" id="hint">Mic is off</div>
+  </div></div>
+</main>
+
+<dialog id="viewer">
+  <div class="mhead"><span id="vtitle" class="mono"></span><button class="ghost" id="vclose">Close</button></div>
+  <div class="mbody" id="vbody"></div>
+  <div class="mtext" id="vtext"></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => (s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = t => { if (t == null) return ""; t = Math.round(t); const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60;
+  return (h ? h + ":" + String(m).padStart(2,"0") : m) + ":" + String(s).padStart(2,"0"); };
+const toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3200); };
+
+/* ------------------------------------------------------------ websocket */
+let ws, turns = {}, currentTurn = 0;
+function connect() {
+  ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/voice`);
+  ws.binaryType = "arraybuffer";
+  ws.onopen = () => sendConfig();
+  ws.onclose = () => { $("#health").textContent = "disconnected – retrying…"; setTimeout(connect, 1500); };
+  ws.onmessage = e => handle(JSON.parse(e.data));
+}
+const wsSend = o => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+function sendConfig() { wsSend({type: "config", language: $("#lang").value || null, barge_in: $("#barge").checked}); }
+
+function handle(ev) {
+  switch (ev.type) {
+    case "ready": loadHealth(); break;
+    case "vad": $("#mic").classList.toggle("speech", ev.state === "speech");
+      if (ev.state === "speech") hint("Listening…", true); break;
+    case "transcript": startTurn(ev); break;
+    case "sources": { const t = turns[ev.turn]; if (!t) break; t.sources = ev.sources;
+      t.status.innerHTML = `<span class="dot ok"></span> Searched ${ev.sources.length} sources` +
+        (ev.query && ev.query !== t.question ? ` for “${esc(ev.query)}”` : ""); hint("Answering…"); break; }
+    case "token": { const t = turns[ev.turn]; if (!t) break; t.raw += ev.text; renderText(t); scrollDown(); break; }
+    case "audio": if (ev.turn === currentTurn && $("#speak").checked) enqueueAudio(ev); break;
+    case "done": finishTurn(ev); break;
+    case "interrupt": stopAudio(); { const t = turns[currentTurn];
+      if (t && !t.done) { t.text.classList.remove("thinking"); t.el.insertAdjacentHTML("beforeend",
+        `<div class="interrupted">Interrupted</div>`); t.done = true; } } hint(micOn ? "Listening…" : "Mic is off"); break;
+    case "error": toast(ev.error || "Something went wrong"); hint(micOn ? "Listening…" : "Mic is off"); break;
+  }
+}
+
+/* ------------------------------------------------------------ chat */
+function scrollDown() { const c = $("#chat"); c.scrollTop = c.scrollHeight; }
+function hint(text, live) { $("#hint").innerHTML = (live ? '<span class="dot live"></span>' : "") + esc(text); }
+
+function startTurn(ev) {
+  $("#empty")?.remove();
+  currentTurn = ev.turn; stopAudio();
+  if (!ev.text) { hint("Didn't catch that – try again"); return; }
+  const msgs = $("#msgs");
+  msgs.insertAdjacentHTML("beforeend", `<div class="msg user"><div><div class="bubble">${esc(ev.text)}</div>
+    ${ev.language ? `<div class="meta">🎙 ${ev.language}${ev.confidence ? " · " + Math.round(ev.confidence*100) + "%" : ""}</div>` : ""}</div></div>`);
+  const el = document.createElement("div"); el.className = "msg bot";
+  el.innerHTML = `<div class="status-line"><span class="dot live"></span> Searching your library…</div><div class="text thinking"></div>`;
+  msgs.appendChild(el);
+  turns[ev.turn] = {el, question: ev.text, raw: "", sources: [], status: el.querySelector(".status-line"),
+                    text: el.querySelector(".text")};
+  hint("Searching…", true); scrollDown();
+}
+
+function renderText(t) {
+  t.text.innerHTML = esc(t.raw).replace(/\[(\d{1,2})\]/g, (m, n) => `<button class="cite" data-n="${n}">${n}</button>`);
+  t.text.querySelectorAll(".cite").forEach(b => b.onclick = () => focusSource(t, +b.dataset.n));
+}
+
+function focusSource(t, n) {
+  const card = t.el.querySelector(`.src[data-n="${n}"]`);
+  if (card) { card.scrollIntoView({block: "nearest"}); card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 1200); card.click(); }
+  else { const s = (t.sources || []).find(x => x.n === n); if (s) openSource(s); }
+}
+
+function finishTurn(ev) {
+  const t = turns[ev.turn]; if (!t) return;
+  t.done = true; t.answer = ev.answer; t.raw = ev.answer; t.text.classList.remove("thinking"); renderText(t);
+  const src = (ev.sources && ev.sources.length) ? ev.sources : [];
+  t.cited = src;
+  const cards = src.map(s => sourceCard(s)).join("");
+  const m = ev.metrics || {};
+  const lat = [["stt", m.stt_ms], ["first token", m.first_token_ms], ["first audio", m.first_audio_ms], ["total", m.total_ms]]
+    .filter(x => x[1] != null).map(([k, v]) => `<span>${k} <b>${v}ms</b></span>`).join("");
+  t.el.insertAdjacentHTML("beforeend", `${cards ? `<div class="sources">${cards}</div>` : ""}
+    <div class="foot"><div class="lat">${lat}</div>
+      <div class="fb"><button data-r="1" title="Good answer">👍</button><button data-r="-1" title="Bad answer">👎</button></div></div>`);
+  t.el.querySelectorAll(".src").forEach(c => c.onclick = () => openSource(src.find(s => s.n === +c.dataset.n)));
+  t.el.querySelectorAll(".fb button").forEach(b => b.onclick = () => feedback(t, +b.dataset.r, b));
+  hint(micOn ? "Listening…" : "Mic is off", micOn); scrollDown();
+}
+
+const ICON = {video: "🎬", audio: "🎧", document: "📄", image: "🖼"};
+function sourceCard(s) {
+  const timed = s.start != null;
+  const thumb = s.image_url ? `style="background-image:url('${encodeURI(s.image_url)}')"` : "";
+  const label = timed ? fmt(s.start) : (s.page ? "p." + s.page : s.modality);
+  const snippet = (s.text || "").replace(/^\[[^\]]*\]\s*/, "").replace(/\[\d+:\d+(:\d+)? [^\]]*\]\s*/g, "");
+  return `<button class="src" data-n="${s.n}">
+    <div class="thumb" ${thumb}><span class="badge">[${s.n}] ${esc(label)}</span>
+      ${timed && s.media_url ? '<span class="play">▶</span>' : (!s.image_url ? `<span class="play">${ICON[s.modality] || "📄"}</span>` : "")}</div>
+    <div class="body"><div class="cit">${esc(s.citation)}</div><div class="snip">${esc(snippet)}</div>
+      <div class="tags">${(s.matched_by || "").split("+").filter(Boolean).map(x => `<span class="tag">${x}</span>`).join("")}
+      ${(s.speakers || []).slice(0, 2).map(x => `<span class="tag">${esc(x)}</span>`).join("")}</div></div></button>`;
+}
+
+function openSource(s) {
+  if (!s) return;
+  const body = $("#vbody"); body.innerHTML = "";
+  $("#vtitle").textContent = s.citation; $("#vtext").textContent = s.text || "";
+  if (s.start != null && s.media_url) {
+    const v = document.createElement(s.modality === "video" ? "video" : "audio");
+    v.controls = true; v.src = s.media_url + "#t=" + Math.max(0, s.start - 2);
+    v.addEventListener("loadedmetadata", () => { v.currentTime = Math.max(0, s.start - 2); v.play().catch(() => {}); }, {once: true});
+    body.appendChild(v);
+  } else if (s.image_url) {
+    body.innerHTML = `<img src="${encodeURI(s.image_url)}" alt="">`;
+  } else { body.innerHTML = `<div style="color:#aaa;padding:40px">No preview</div>`; }
+  $("#viewer").showModal();
+}
+$("#vclose").onclick = () => { $("#viewer").close(); };
+$("#viewer").addEventListener("close", () => { $("#vbody").innerHTML = ""; });
+
+async function feedback(t, rating, btn) {
+  t.el.querySelectorAll(".fb button").forEach(b => b.classList.remove("on")); btn.classList.add("on");
+  let comment = "";
+  if (rating < 0) comment = prompt("What was wrong? (optional)") || "";
+  await fetch("/api/feedback", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({question: t.question, answer: t.answer || t.raw, rating, comment,
+      sources: (t.cited || []).map(s => ({chunk_id: s.chunk_id, citation: s.citation}))})});
+  toast(rating > 0 ? "Thanks – noted as a good answer" : "Thanks – this helps improve answers");
+}
+
+/* ------------------------------------------------------------ text input */
+function askText(text) { if (!text.trim()) return; wsSend({type: "text", text}); }
+$("#ask").onsubmit = e => { e.preventDefault(); askText($("#q").value); $("#q").value = ""; };
+document.querySelectorAll(".suggest button").forEach(b => b.onclick = () => askText(b.textContent));
+$("#newchat").onclick = () => { wsSend({type: "reset"}); stopAudio(); turns = {}; $("#msgs").innerHTML = ""; hint(micOn ? "Listening…" : "Mic is off"); };
+["lang", "barge"].forEach(id => $("#" + id).onchange = sendConfig);
+$("#speak").onchange = () => { if (!$("#speak").checked) stopAudio(); };
+
+/* ------------------------------------------------------------ audio out */
+let queue = [], playing = null;
+function enqueueAudio(ev) { queue.push(ev); if (!playing) playNext(); }
+function playNext() {
+  const ev = queue.shift(); if (!ev) { playing = null; return; }
+  const bytes = Uint8Array.from(atob(ev.data), c => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], {type: ev.mime}));
+  playing = new Audio(url);
+  playing.onended = playing.onerror = () => { URL.revokeObjectURL(url); playNext(); };
+  playing.play().catch(() => playNext());
+}
+function stopAudio() { queue = []; if (playing) { playing.pause(); playing = null; } }
+
+/* ------------------------------------------------------------ mic in (16 kHz PCM16) */
+const WORKLET = `
+class PCM16 extends AudioWorkletProcessor {
+  // Resample the device rate (44.1/48 kHz) to 16 kHz and send ~20 ms Int16 frames.
+  constructor(){ super(); this.ratio = sampleRate / 16000; this.t = 0; this.acc = []; this.sum = 0; }
+  process(inputs){
+    const ch = inputs[0][0]; if (!ch) return true;
+    for (; this.t < ch.length; this.t += this.ratio) { const s = ch[Math.floor(this.t)]; this.acc.push(s); this.sum += s*s; }
+    this.t -= ch.length;  // carry the fractional position into the next block
+    if (this.acc.length >= 320) {
+      const out = new Int16Array(this.acc.length);
+      for (let i = 0; i < this.acc.length; i++) out[i] = Math.max(-1, Math.min(1, this.acc[i])) * 32767;
+      this.port.postMessage({pcm: out.buffer, rms: Math.sqrt(this.sum / this.acc.length)}, [out.buffer]);
+      this.acc = []; this.sum = 0;
+    }
+    return true;
+  }
+}
+registerProcessor("pcm16", PCM16);`;
+let micOn = false, ctx, stream, node;
+async function startMic() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1}});
+  } catch (e) { toast("Microphone permission is needed for voice"); return; }
+  ctx = new AudioContext();
+  await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], {type: "application/javascript"})));
+  node = new AudioWorkletNode(ctx, "pcm16");
+  node.port.onmessage = ({data}) => {
+    if (ws.readyState === 1) ws.send(data.pcm);
+    $("#mic").style.setProperty("--lvl", (1 + Math.min(0.35, data.rms * 3)).toFixed(3));
+  };
+  ctx.createMediaStreamSource(stream).connect(node);
+  micOn = true; $("#mic").classList.add("on"); hint("Listening… just start talking", true);
+}
+function stopMic() {
+  stream?.getTracks().forEach(t => t.stop()); ctx?.close();
+  micOn = false; $("#mic").classList.remove("on", "speech"); hint("Mic is off");
+}
+$("#mic").onclick = () => micOn ? stopMic() : startMic();
+
+/* ------------------------------------------------------------ library */
+async function loadStats() {
+  try {
+    const s = await (await fetch("/api/stats")).json();
+    const entries = Object.entries(s.sources).sort();
+    $("#libcount").textContent = entries.length ? `· ${entries.length}` : "";
+    $("#lib").innerHTML = entries.length ? entries.map(([name, n]) => {
+      const ext = name.split(".").pop().toLowerCase();
+      const icon = ["mp4","mkv","mov","webm","m4v","avi"].includes(ext) ? "🎬" : ["mp3","wav","m4a","flac","ogg","aac","opus"].includes(ext) ? "🎧" : ["png","jpg","jpeg","webp","tif","tiff","bmp"].includes(ext) ? "🖼" : "📄";
+      return `<li title="${esc(name)}">${icon}<span class="name">${esc(name)}</span><span class="n">${n}</span></li>`;
+    }).join("") : `<li style="color:var(--muted)">Nothing yet – add files above</li>`;
+  } catch {}
+}
+async function loadHealth() {
+  try { const h = await (await fetch("/api/health")).json();
+    $("#health").innerHTML = `llm ${esc(h.llm)}<br>stt ${esc(h.stt)}<br>tts ${esc(h.tts)}<br>embed ${esc(h.embeddings.join(" + "))}`;
+  } catch {}
+}
+let polling = false;
+async function pollJobs() {
+  if (polling) return; polling = true;
+  while (true) {
+    const {jobs} = await (await fetch("/api/jobs")).json();
+    $("#jobs").innerHTML = jobs.slice(-6).reverse().map(j => `<div class="job ${j.status === "error" ? "err" : ""}">
+      <span class="dot ${j.status === "done" ? "ok" : j.status === "error" ? "" : "live"}"></span>
+      ${esc(j.file)} · ${j.status === "done" ? `${j.chunks} chunks` : j.status === "error" ? esc(j.error).slice(0, 80) : j.status}</div>`).join("");
+    if (!jobs.some(j => j.status === "queued" || j.status === "processing")) break;
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  polling = false; loadStats();
+}
+async function upload(files) {
+  if (!files.length) return;
+  const fd = new FormData(); [...files].forEach(f => fd.append("files", f));
+  const r = await fetch("/api/ingest", {method: "POST", body: fd});
+  if (!r.ok) { toast((await r.json()).detail || "Upload failed"); return; }
+  toast(`Processing ${files.length} file(s)…`); pollJobs();
+}
+$("#file").onchange = e => upload(e.target.files);
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => upload(e.dataTransfer.files));
+if (matchMedia("(max-width:860px)").matches) { $("#menu").style.display = ""; $("#menu").onclick = () => $("#side").classList.toggle("open"); }
+
+connect(); loadStats(); pollJobs();
+</script>
+</body>
+</html>
