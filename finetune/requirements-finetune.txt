@@ -1,0 +1,14 @@
+# Fine-tuning stack (GPU machine / Colab / Kaggle). torch comes preinstalled on Colab.
+# Pinned to a combination known to work together for Whisper + LoRA.
+transformers==4.46.3
+peft==0.13.2
+datasets[audio]==3.1.0
+accelerate==1.1.1
+bitsandbytes>=0.44         # only for --8bit
+soundfile>=0.12
+librosa>=0.10
+tensorboard>=2.17
+ctranslate2>=4.4           # export for faster-whisper
+faster-whisper>=1.0        # evaluation
+huggingface_hub>=0.26
+pydantic>=2.6

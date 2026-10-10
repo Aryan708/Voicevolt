@@ -9,3 +9,7 @@ data/processed/*
 !data/processed/.gitkeep
 data/index/
 data/logs/
+runs/
+models/
+data/asr/
+reports/asr/utterances.csv
