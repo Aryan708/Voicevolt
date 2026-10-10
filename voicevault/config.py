@@ -47,9 +47,26 @@ class Settings:
     scene_threshold: float = float(_env("SCENE_THRESHOLD", "0.30"))
     max_frame_gap_seconds: float = float(_env("MAX_FRAME_GAP_SECONDS", "30"))
 
+    # Embeddings (Week 2)
+    embed_backend: str = _env("EMBED_BACKEND", "st").lower()  # st | hash (offline/testing)
+    text_embed_model: str = _env("TEXT_EMBED_MODEL", "intfloat/multilingual-e5-small")
+    clip_image_model: str = _env("CLIP_IMAGE_MODEL", "clip-ViT-B-32")
+    clip_text_model: str = _env(
+        "CLIP_TEXT_MODEL", "sentence-transformers/clip-ViT-B-32-multilingual-v1"
+    )
+    embed_device: str = _env("EMBED_DEVICE", "")  # "" = auto
+    index_dir: Path = field(default=None)  # type: ignore[assignment]
+
+    # Retrieval
+    rrf_k: int = int(_env("RRF_K", "60"))
+    weight_dense: float = float(_env("WEIGHT_DENSE", "1.0"))
+    weight_bm25: float = float(_env("WEIGHT_BM25", "0.8"))
+    weight_visual: float = float(_env("WEIGHT_VISUAL", "0.6"))
+
     def __post_init__(self) -> None:
         self.raw_dir = self.raw_dir or self.root / "data" / "raw"
         self.processed_dir = self.processed_dir or self.root / "data" / "processed"
+        self.index_dir = self.index_dir or Path(_env("INDEX_DIR") or self.root / "data" / "index")
         self.processed_dir.mkdir(parents=True, exist_ok=True)
 
 
