@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Optional, Protocol
 from collections.abc import Callable, Iterator, Sequence
 
@@ -94,6 +95,59 @@ class FakeLLM:
             yield word if i == 0 else " " + word
 
 
+class ExtractiveLLM(FakeLLM):
+    """Offline, key-free "LLM" for demos: answers by quoting the source sentences that best
+    match the question, with citations. It cannot reason or translate, but it never invents."""
+
+    name = "extractive (offline demo)"
+    _SRC = re.compile(r"^\[(\d+)\] [^\n]*\n(.*?)(?=^\[\d+\] |\Z)", re.S | re.M)
+    _TAG = re.compile(r"\[(\d+:\d{2}(?::\d{2})?) ([^\]]+)\]\s*")
+
+    def __init__(self):
+        super().__init__(self._answer)
+
+    def _answer(self, system: str, messages: Sequence[Message]) -> str:
+        last = messages[-1]["content"]
+        if "Rewrite the follow-up" in system:
+            return last.split("Follow-up:")[-1].strip()
+        if "Question:" not in last:
+            return "I could not find that in your files."
+        ctx, question = last.rsplit("Question:", 1)
+        q = {w for w in re.findall(r"\w+", question.lower()) if len(w) > 2}
+        scored = []
+        for n, body in self._SRC.findall(ctx):
+            # re-join PDF line wraps: a line that doesn't start with a [time SPEAKER] tag
+            # continues the previous one
+            lines: list[str] = []
+            for raw in body.splitlines():
+                if lines and raw.strip() and not self._TAG.match(raw):
+                    lines[-1] += " " + raw.strip()
+                elif raw.strip():
+                    lines.append(raw.strip())
+            for line in lines:
+                tag = self._TAG.match(line)
+                text = self._TAG.sub("", line)
+                text = re.sub(r"^\[[^\]]+ p\.\d+\]\s*", "", text).strip()
+                for sent in re.split(r"(?<=[.!?।])\s+", text):
+                    words = set(re.findall(r"\w+", sent.lower()))
+                    score = len(q & words) / (1 + 0.02 * len(words))
+                    if score > 0 and len(sent) > 15:
+                        who = tag.group(2) if tag else None
+                        prefix = (f"{who.title()} said at {tag.group(1)}: " if who and who != "SLIDE"
+                                  else f"The slide at {tag.group(1)} shows: " if tag else "")
+                        scored.append((score, int(n), prefix + sent.rstrip(".") + "."))
+        if not scored:
+            return "I could not find that in your files."
+        scored.sort(key=lambda x: -x[0])
+        picked, used = [], set()
+        best = scored[0][0]
+        for score, n, s in scored:
+            if s not in used and len(picked) < 2 and score >= 0.6 * best:
+                picked.append(f"{s[:-1]} [{n}].")
+                used.add(s)
+        return " ".join(picked)
+
+
 def get_llm(provider: Optional[str] = None, model: Optional[str] = None) -> LLM:
     provider = (provider or settings.llm_provider).lower()
     if provider == "anthropic":
@@ -105,4 +159,7 @@ def get_llm(provider: Optional[str] = None, model: Optional[str] = None) -> LLM:
                                api_key="ollama", label="ollama")
     if provider == "fake":
         return FakeLLM()
-    raise ValueError(f"Unknown LLM_PROVIDER '{provider}' (anthropic | openai | ollama | fake)")
+    if provider == "extractive":
+        return ExtractiveLLM()
+    raise ValueError(f"Unknown LLM_PROVIDER '{provider}' "
+                     "(anthropic | openai | ollama | extractive | fake)")

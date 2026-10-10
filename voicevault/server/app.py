@@ -88,13 +88,33 @@ def _url_for(path: Optional[str]) -> Optional[str]:
     return None
 
 
+_raw_cache: dict[tuple[str, str], Path] = {}
+
+
+def find_raw(name: str) -> Optional[Path]:
+    """Locate an original file by name anywhere under data/raw (uploads, demo/, sub-folders)."""
+    root = settings.raw_dir
+    key = (str(root.resolve()), name)
+    hit = _raw_cache.get(key)
+    if hit is not None and hit.is_file():
+        return hit
+    found: Optional[Path] = None
+    if (root / name).is_file():
+        found = root / name
+    elif root.exists():
+        found = next((p for p in root.rglob(name) if p.is_file()), None)
+    if found:
+        _raw_cache[key] = found
+    return found
+
+
 def publicize(sources: list[dict]) -> list[dict]:
     out = []
     for s in sources:
         s = dict(s)
         s["image_url"] = _url_for(s.pop("image", None))
-        raw = settings.raw_dir / s["source"]
-        s["media_url"] = _url_for(str(raw)) if raw.exists() else None
+        raw = find_raw(s["source"])
+        s["media_url"] = _url_for(str(raw)) if raw else None
         out.append(s)
     return out
 

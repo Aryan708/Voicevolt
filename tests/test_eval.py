@@ -152,7 +152,8 @@ def test_evaluate_cli_end_to_end(tmp_path):
     eval_set.write_text(json.dumps({"id": "q1", "question": "travel reimbursement cap rupees",
                                     "relevant": [{"source": "policy.pdf", "page": 1}]}) + "\n")
     env = {**os.environ, "EMBED_BACKEND": "hash", "LLM_PROVIDER": "fake", "VISION_PROVIDER": "none",
-           "INDEX_DIR": str(tmp_path / "idx"), "REPORTS_DIR": str(tmp_path / "reports")}
+           "INDEX_DIR": str(tmp_path / "idx"), "REPORTS_DIR": str(tmp_path / "reports"),
+           "PROCESSED_DIR": str(tmp_path / "processed"), "RAW_DIR": str(tmp_path / "raw")}
     run = lambda *args: subprocess.run([sys.executable, *args], cwd=ROOT, env=env,  # noqa: E731
                                        capture_output=True, text=True, timeout=180)
     r = run("scripts/index.py", str(pdf))

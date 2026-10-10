@@ -47,14 +47,16 @@ class VoiceSession:
         language: Optional[str] = None,
         barge_in: Optional[bool] = None,
         segmenter: Optional[UtteranceSegmenter] = None,
-        metrics_path: Optional[Path] = settings.metrics_path,
+        metrics_path: Optional[Path | bool] = None,   # None = settings.metrics_path, False = off
         max_history: int = 8,
     ):
         self.rag, self.stt, self.tts, self.send = rag, stt, tts, send
         self.language = language
         self.barge_in = settings.barge_in if barge_in is None else barge_in
         self.segmenter = segmenter or UtteranceSegmenter(silence_ms=settings.vad_silence_ms)
-        self.metrics_path = metrics_path
+        # resolved at call time, not import time, so config/test overrides take effect
+        self.metrics_path = (None if metrics_path is False else
+                             settings.metrics_path if metrics_path is None else metrics_path)
         self.max_history = max_history
         self.history: list[Message] = []
         self.task: Optional[asyncio.Task] = None

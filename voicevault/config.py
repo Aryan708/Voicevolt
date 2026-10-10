@@ -44,7 +44,10 @@ class Settings:
     chunk_overlap_seconds: float = float(_env("CHUNK_OVERLAP_SECONDS", "8"))
 
     # Keyframes
-    scene_threshold: float = float(_env("SCENE_THRESHOLD", "0.30"))
+    scene_threshold: float = float(_env("SCENE_THRESHOLD", "0.30"))      # hard-cut pixel share
+    keyframe_fps: float = float(_env("KEYFRAME_FPS", "2"))
+    keyframe_change: float = float(_env("KEYFRAME_CHANGE", "0.012"))     # new slide: share changed
+    keyframe_stable: float = float(_env("KEYFRAME_STABLE", "0.004"))     # ...and then static
     max_frame_gap_seconds: float = float(_env("MAX_FRAME_GAP_SECONDS", "30"))
 
     # Embeddings (Week 2)
@@ -97,8 +100,9 @@ class Settings:
         return self.root / "data" / "logs" / "feedback.jsonl"
 
     def __post_init__(self) -> None:
-        self.raw_dir = self.raw_dir or self.root / "data" / "raw"
-        self.processed_dir = self.processed_dir or self.root / "data" / "processed"
+        self.raw_dir = self.raw_dir or Path(_env("RAW_DIR") or self.root / "data" / "raw")
+        self.processed_dir = self.processed_dir or Path(
+            _env("PROCESSED_DIR") or self.root / "data" / "processed")
         self.index_dir = self.index_dir or Path(_env("INDEX_DIR") or self.root / "data" / "index")
         self.processed_dir.mkdir(parents=True, exist_ok=True)
 

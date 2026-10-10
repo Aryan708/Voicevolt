@@ -119,8 +119,6 @@ def test_pipeline_end_to_end(tmp_path: Path, monkeypatch):
     subprocess.run([
         "ffmpeg", "-loglevel", "error", "-y",
         "-f", "lavfi", "-i", "color=c=red:s=320x240:d=4",
-        # Note: scene detection is brightness-based, so two slides with equal brightness
-        # but different colours (e.g. red vs green) can be missed; max_gap covers that.
         "-f", "lavfi", "-i", "color=c=white:s=320x240:d=4",
         "-f", "lavfi", "-i", "sine=frequency=300:duration=8",
         "-filter_complex", "[0][1]concat=n=2:v=1:a=0[v]",
@@ -152,3 +150,47 @@ def test_pipeline_end_to_end(tmp_path: Path, monkeypatch):
     out = json.loads((tmp_path / "out" / "Team_Sync" / "ingest.json").read_text())
     assert out["chunks"][0]["frames"][1]["timestamp"] == 4.0
     assert set(out["timings"]) >= {"audio", "transcribe", "keyframes", "captions", "chunk"}
+
+
+# ---------- slide-aware keyframe selection ----------
+
+def _slide(text: str):
+    import numpy as np
+    from PIL import Image, ImageDraw
+
+    im = Image.new("RGB", (160, 90), "#fbf8f2")
+    ImageDraw.Draw(im).text((10, 10), text, fill="black")
+    return np.asarray(im)
+
+
+def test_text_only_slide_changes_are_detected():
+    from voicevault.ingest.video import select_keyframes
+
+    # same background, only the text changes - ffmpeg's scene score misses these
+    frames = [_slide("Q3 review")] * 8 + [_slide("Revenue by region")] * 8 + [_slide("Hiring plan")] * 8
+    assert select_keyframes(frames, fps=2, max_gap=100) == [0.0, 4.0, 8.0]  # exact appearance times
+
+
+def test_moving_video_does_not_flood_keyframes():
+    import numpy as np
+
+    from voicevault.ingest.video import select_keyframes
+
+    rng = np.random.default_rng(0)
+    frames = [rng.integers(0, 255, (90, 160, 3), dtype=np.uint8) for _ in range(120)]  # 60 s of motion
+    times = select_keyframes(frames, fps=2, max_gap=30, cut=1.01)  # disable cuts: pure motion
+    assert times == [0.0, 30.0], "never settles, so only the forced max-gap frames"
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg not installed")
+def test_equal_brightness_colour_change_detected(tmp_path: Path):
+    from voicevault.ingest.video import extract_keyframes
+
+    vid = tmp_path / "rg.mp4"
+    subprocess.run([
+        "ffmpeg", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "color=c=red:s=320x240:d=3",
+        "-f", "lavfi", "-i", "color=c=green:s=320x240:d=3",
+        "-filter_complex", "[0][1]concat=n=2:v=1:a=0[v]", "-map", "[v]", str(vid)], check=True)
+    frames = extract_keyframes(vid, tmp_path / "f", max_gap=100)
+    assert [round(f.timestamp) for f in frames] == [0, 3]

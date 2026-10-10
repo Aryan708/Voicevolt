@@ -207,3 +207,16 @@ def test_barge_in_disabled_keeps_talking(kb):
         await sess.wait()
     asyncio.run(run())
     assert "interrupt" not in sink.types() and sink.types()[-1] == "done"
+
+
+def test_extractive_offline_llm_quotes_and_cites(kb):
+    from voicevault.llm import ExtractiveLLM
+
+    store, indexer, retriever, tmp = kb
+    for r in corpus(tmp):
+        indexer.index(r)
+    ans = RAGPipeline(retriever, ExtractiveLLM(), k=3).ask("Why did the Chennai launch slip?")
+    assert ans.text.startswith("Speaker_01 said at 12:30: The Chennai launch slipped to Q4")
+    assert ans.cited == [1]
+    nothing = RAGPipeline(retriever, ExtractiveLLM(), k=3).ask("zzz qqq xyz")
+    assert "could not find" in nothing.text

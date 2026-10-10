@@ -88,6 +88,7 @@ class Hit:
     score: float
     ranks: dict[str, int] = field(default_factory=dict)   # retriever -> 1-based rank
     image: Optional[str] = None                           # best image to show as proof
+    image_ts: Optional[float] = None                      # when that frame appears (recordings)
 
     @property
     def matched_by(self) -> str:
@@ -174,10 +175,37 @@ class HybridRetriever:
                 continue
             c = chunks[cid]
             ranks = {name: lst.index(cid) + 1 for name, lst in ranked.items() if cid in lst}
-            imgs = c.image_paths()
-            hits.append(Hit(chunk=c, score=round(score, 5), ranks=ranks,
-                            image=best_image.get(cid) or (imgs[0] if imgs else None)))
+            image, ts = pick_proof_image(c, query, best_image.get(cid))
+            hits.append(Hit(chunk=c, score=round(score, 5), ranks=ranks, image=image, image_ts=ts))
         return hits
+
+
+def pick_proof_image(chunk: Chunk, query: str, visual_best: Optional[str]):
+    """Which picture proves this answer? A long recording chunk can span several slides.
+
+    1. the keyframe whose caption shares the most words with the question
+    2. otherwise the image CLIP ranked best for the question
+    3. otherwise the page image / first keyframe
+    Returns (image_path, timestamp_of_that_frame_or_None).
+    """
+    q = {t for t in tokenize(query) if t not in _STOP}
+    best, best_score = None, 0
+    for f in chunk.frames:
+        if f.caption:
+            score = len(q & set(tokenize(f.caption)))
+            if score > best_score:
+                best, best_score = f, score
+    if best is None and visual_best:
+        best = next((f for f in chunk.frames if f.path == visual_best), None)
+        if best is None:
+            return visual_best, None
+    if best is not None:
+        return best.path, best.timestamp
+    if chunk.image_path:
+        return chunk.image_path, None
+    if chunk.frames:
+        return chunk.frames[0].path, chunk.frames[0].timestamp
+    return None, None
 
 
 def rrf(ranked: dict[str, list[str]], weights: dict[str, float], k: int = 60) -> dict[str, float]:

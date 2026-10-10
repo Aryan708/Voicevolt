@@ -20,8 +20,11 @@ qdrant-client>=1.10          # embedded vector DB (or Qdrant server/cloud)
 rank_bm25>=0.2.2
 # LibreOffice (system install) is needed only for .pptx/.docx -> PDF
 
+# Demo data + tests
+reportlab>=4.0
+python-pptx>=1.0
+
 # Dev
-reportlab>=4.0               # tests only
 pytest>=8.0
 
 # Week 3 - server + voice

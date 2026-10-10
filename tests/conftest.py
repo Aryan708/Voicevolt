@@ -54,3 +54,17 @@ def corpus(tmp: Path) -> list[IngestResult]:
     return [meeting, doc, scan]
 
 
+
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _repo_stays_clean():
+    """Fail the run if any test writes into the repository's data/ folder."""
+    def snapshot():
+        return {p for p in (ROOT / "data").rglob("*") if p.name != ".gitkeep"}
+    before = snapshot()
+    yield
+    leaked = snapshot() - before
+    assert not leaked, f"tests wrote into the repo: {sorted(map(str, leaked))[:5]}"

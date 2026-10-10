@@ -92,7 +92,7 @@ main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-colum
 .src:hover{transform:translateY(-1px);border-color:var(--accent)}
 .src.flash{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .src .thumb{aspect-ratio:16/9;background:var(--chip) center top/cover no-repeat;border-bottom:1px solid var(--line);position:relative}
-.src .thumb .badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.65);color:#fff;
+.src .thumb .badge{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.65);color:#fff;
   font:500 11px var(--mono);padding:2px 6px;border-radius:5px}
 .src .thumb .play{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;
   color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);opacity:.9}
@@ -314,7 +314,8 @@ const ICON = {video: "🎬", audio: "🎧", document: "📄", image: "🖼"};
 function sourceCard(s) {
   const timed = s.start != null;
   const thumb = s.image_url ? `style="background-image:url('${encodeURI(s.image_url)}')"` : "";
-  const label = timed ? fmt(s.start) : (s.page ? "p." + s.page : s.modality);
+  const at = s.image_ts ?? s.start;
+  const label = timed ? fmt(at) : (s.page ? "p." + s.page : s.modality);
   const snippet = (s.text || "").replace(/^\[[^\]]*\]\s*/, "").replace(/\[\d+:\d+(:\d+)? [^\]]*\]\s*/g, "");
   return `<button class="src" data-n="${s.n}">
     <div class="thumb" ${thumb}><span class="badge">[${s.n}] ${esc(label)}</span>
@@ -330,8 +331,9 @@ function openSource(s) {
   $("#vtitle").textContent = s.citation; $("#vtext").textContent = s.text || "";
   if (s.start != null && s.media_url) {
     const v = document.createElement(s.modality === "video" ? "video" : "audio");
-    v.controls = true; v.src = s.media_url + "#t=" + Math.max(0, s.start - 2);
-    v.addEventListener("loadedmetadata", () => { v.currentTime = Math.max(0, s.start - 2); v.play().catch(() => {}); }, {once: true});
+    const at = Math.max(0, (s.image_ts ?? s.start) - 2);   // a little before the cited moment
+    v.controls = true; v.src = s.media_url + "#t=" + at;
+    v.addEventListener("loadedmetadata", () => { v.currentTime = at; v.play().catch(() => {}); }, {once: true});
     body.appendChild(v);
   } else if (s.image_url) {
     body.innerHTML = `<img src="${encodeURI(s.image_url)}" alt="">`;

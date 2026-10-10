@@ -1,4 +1,4 @@
-.PHONY: install dev test lint serve index search chat eval-set eval docker-up docker-down demo clean
+.PHONY: install dev test lint serve index search chat eval-set eval docker-up docker-down demo demo-data clean
 
 PY ?= python
 
@@ -32,9 +32,14 @@ eval-set:           ## draft an eval set from your index (review it afterwards!)
 eval:               ## retrieval ablation + LLM-judge answer quality + latency + feedback
 	$(PY) scripts/evaluate.py all --eval-set eval/eval_set.jsonl
 
-demo:               ## offline demo: no API keys, no model downloads
-	EMBED_BACKEND=hash LLM_PROVIDER=fake STT_PROVIDER=fake TTS_PROVIDER=fake VISION_PROVIDER=none \
-	INDEX_DIR=data/demo_index uvicorn voicevault.server.app:app --port 8000
+OFFLINE = EMBED_BACKEND=hash LLM_PROVIDER=extractive STT_PROVIDER=fake TTS_PROVIDER=fake \
+          VISION_PROVIDER=none INDEX_DIR=data/demo_index
+
+demo-data:          ## build the sample library into the offline demo index
+	$(OFFLINE) $(PY) scripts/make_demo_data.py --index --no-vision
+
+demo:               ## offline demo web app: no API keys, no model downloads
+	$(OFFLINE) uvicorn voicevault.server.app:app --port 8000
 
 docker-up:
 	docker compose up --build -d && echo "→ http://localhost:8000"

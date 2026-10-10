@@ -145,3 +145,13 @@ def test_index_page_served(client):
     c, _ = client
     r = c.get("/")
     assert r.status_code == 200 and "VoiceVault" in r.text and "/ws/voice" in r.text
+
+
+def test_media_in_subfolder_and_proof_frame_time(client):
+    c, tmp = client
+    (tmp / "raw" / "team").mkdir()
+    (tmp / "raw" / "sync.mp4").rename(tmp / "raw" / "team" / "sync.mp4")
+    r = c.post("/api/ask", json={"question": "regional revenue bar chart"}).json()
+    s = next(x for x in r["sources"] if x["chunk_id"] == "m1")
+    assert s["media_url"] == "/files/raw/team/sync.mp4"
+    assert s["image_ts"] == 754 and s["image_url"].endswith("f1.jpg")   # the chart frame, not 750

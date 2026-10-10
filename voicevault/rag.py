@@ -74,13 +74,31 @@ class Answer:
                 if not only_cited or i in self.cited]
 
 
+_LINE_TS = re.compile(r"^\[(\d+):(\d{2})(?::(\d{2}))?")
+
+
+def snippet(text: str, at: Optional[float], limit: int = 600) -> str:
+    """Chunk text starting at the cited moment (recordings), so the card shows what matters."""
+    if at is None:
+        return text[:limit]
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        m = _LINE_TS.match(line)
+        if m:
+            a, b, c = (int(x) if x else None for x in m.groups())
+            secs = a * 3600 + b * 60 + c if c is not None else a * 60 + b
+            if secs >= at - 1:
+                return "\n".join(lines[i:])[:limit]
+    return text[:limit]
+
+
 def source_dict(n: int, h: Hit) -> dict:
     c = h.chunk
     return {
         "n": n, "chunk_id": c.id, "source": c.source, "modality": c.modality,
         "citation": c.citation, "start": c.start, "end": c.end, "page": c.page,
-        "image": h.image, "speakers": c.speakers, "matched_by": h.matched_by,
-        "score": h.score, "text": c.text[:600],
+        "image": h.image, "image_ts": h.image_ts, "speakers": c.speakers, "matched_by": h.matched_by,
+        "score": h.score, "text": snippet(c.text, h.image_ts),
     }
 
 
