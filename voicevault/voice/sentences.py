@@ -7,7 +7,7 @@ LLM still writing sentence 2.
 from __future__ import annotations
 
 import re
-from typing import Iterator
+from collections.abc import Iterator
 
 _ABBREV = {"mr", "mrs", "ms", "dr", "prof", "sr", "jr", "vs", "etc", "e.g", "i.e", "no", "rs",
            "approx", "inc", "ltd", "fig", "st"}

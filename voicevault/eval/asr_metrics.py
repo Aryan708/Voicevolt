@@ -12,7 +12,7 @@ import re
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 _DEV_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 _ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍﻿"), None)
@@ -109,7 +109,10 @@ def align(ref: Sequence[str], hyp: Sequence[str]) -> Alignment:
 
 def _rate(refs: Iterable[str], hyps: Iterable[str], unit: str, norm: bool) -> tuple[float, Alignment]:
     total = Alignment()
-    for r, h in zip(refs, hyps):
+    refs, hyps = list(refs), list(hyps)
+    if len(refs) != len(hyps):
+        raise ValueError(f"{len(refs)} references but {len(hyps)} hypotheses")
+    for r, h in zip(refs, hyps, strict=True):
         if norm:
             r, h = normalize(r), normalize(h)
         rt, ht = (r.split(), h.split()) if unit == "word" else (list(r.replace(" ", "")),

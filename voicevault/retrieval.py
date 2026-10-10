@@ -73,7 +73,7 @@ class Indexer:
         # A page split into several text chunks shares one image: embed each file once.
         uniq = list(dict.fromkeys(r["image_path"] for r in records))
         if uniq:
-            vec_by_path = dict(zip(uniq, self.img_emb.embed_images(uniq)))
+            vec_by_path = dict(zip(uniq, self.img_emb.embed_images(uniq), strict=True))
             self.store.add_images(records, np.stack([vec_by_path[r["image_path"]]
                                                      for r in records]))
         log.info("Indexed %s: %d chunks, %d images", result.source, len(chunks), len(records))

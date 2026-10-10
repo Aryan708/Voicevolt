@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Iterator, Optional, Protocol, Sequence
+from typing import Optional, Protocol
+from collections.abc import Callable, Iterator, Sequence
 
 from .config import settings
 

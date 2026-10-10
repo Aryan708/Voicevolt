@@ -75,10 +75,12 @@ def main() -> None:
     audio_s = sum(c["duration"] for c in clips)
     refs = [c["text"] for c in clips]
     labels = a.label or [Path(m).name if "/" in m else m for m in a.model]
+    if len(labels) != len(a.model):
+        raise SystemExit("give one --label per --model (or none)")
     a.out.mkdir(parents=True, exist_ok=True)
 
     results, all_hyps = [], {}
-    for name, label in zip(a.model, labels):
+    for name, label in zip(a.model, labels, strict=True):
         print(f"• {label}: {len(clips)} clips, {audio_s / 60:.1f} min of audio")
         hyps, secs = transcribe_all(name, clips, a.language, a.beam, a.device, a.compute_type)
         r = report(refs, hyps)

@@ -60,6 +60,6 @@ def extract_keyframes(
     if len(times) != len(files):
         log.warning("Frame/timestamp count mismatch (%d vs %d); truncating.",
                     len(files), len(times))
-    frames = [Keyframe(timestamp=round(t, 2), path=str(f)) for t, f in zip(times, files)]
+    frames = [Keyframe(timestamp=round(t, 2), path=str(f)) for t, f in zip(times, files, strict=False)]
     log.info("Extracted %d keyframes from %s", len(frames), video_path.name)
     return frames

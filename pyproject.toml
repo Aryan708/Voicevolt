@@ -1,0 +1,34 @@
+[project]
+name = "voicevault"
+version = "1.0.0"
+description = "Voice-first multimodal RAG copilot over meetings, lectures, documents and images (English + Hindi)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aryan Srivastava" }]
+
+[tool.setuptools.packages.find]
+include = ["voicevault*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning:starlette.*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = [
+  "E731",   # small lambdas are fine in tests
+  "B008",   # FastAPI's File(...) defaults
+  "UP007",  # keep Optional[...] for readability
+  "UP045",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402"]
+"finetune/*" = ["E402"]
+"tests/*" = ["E402"]

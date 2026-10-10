@@ -5,7 +5,8 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Iterator, Optional, Sequence
+from typing import Optional
+from collections.abc import Iterator, Sequence
 
 from .config import settings
 from .llm import LLM, Message, complete

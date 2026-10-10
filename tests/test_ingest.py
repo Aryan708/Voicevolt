@@ -37,7 +37,7 @@ def test_chunks_cover_everything_and_respect_window():
 
 def test_chunks_overlap():
     chunks = build_chunks(make_transcript(), window=30, overlap=8)
-    for a, b in zip(chunks, chunks[1:]):
+    for a, b in zip(chunks, chunks[1:], strict=False):
         assert b.start < a.end, "neighbouring chunks should overlap"
         assert b.start > a.start, "chunking must make progress"
 

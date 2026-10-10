@@ -1,0 +1,29 @@
+# docker compose up --build   ->  http://localhost:8000
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"          # Qdrant dashboard: http://localhost:6333/dashboard
+
+  app:
+    build:
+      context: .
+      args:
+        WITH_LIBREOFFICE: "1"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    volumes:
+      - ./data:/app/data      # uploads, processed pages/frames, logs, model cache
+      - ./models:/app/models  # put your fine-tuned Whisper here, set STT_MODEL=/app/models/...
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+
+volumes:
+  qdrant_data:

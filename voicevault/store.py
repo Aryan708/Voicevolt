@@ -20,7 +20,8 @@ import os
 import threading
 from collections import Counter
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Optional
+from collections.abc import Iterator
 
 import numpy as np
 from qdrant_client import QdrantClient, models
@@ -127,7 +128,7 @@ class VectorStore:
         points = [
             models.PointStruct(id=_pid(c.id), vector=v.tolist(),
                                payload={**c.model_dump(), "chunk_id": c.id})
-            for c, v in zip(chunks, vectors)
+            for c, v in zip(chunks, vectors, strict=True)
         ]
         self.client.upsert(CHUNKS, points=points)
         self.version += 1
@@ -140,7 +141,7 @@ class VectorStore:
         points = [
             models.PointStruct(id=_pid(f"{r['chunk_id']}|{r['image_path']}"),
                                vector=v.tolist(), payload=r)
-            for r, v in zip(records, vectors)
+            for r, v in zip(records, vectors, strict=True)
         ]
         self.client.upsert(IMAGES, points=points)
         self.version += 1

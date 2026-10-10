@@ -2,7 +2,6 @@
 import asyncio
 
 import numpy as np
-import pytest
 
 from conftest import corpus
 from voicevault.llm import FakeLLM

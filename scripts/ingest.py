@@ -45,7 +45,7 @@ def main() -> None:
               f"duration={fmt_ts(r.transcript.duration)}")
         print(f"  segments={len(r.transcript.segments)}  speakers={len(speakers)}  "
               f"keyframes={len(r.keyframes)}  chunks={len(r.chunks)}")
-        print(f"  timings: " + ", ".join(f"{k}={v}s" for k, v in r.timings.items()))
+        print("  timings: " + ", ".join(f"{k}={v}s" for k, v in r.timings.items()))
         if r.chunks:
             c = r.chunks[0]
             preview = c.text[:300].replace("\n", "\n    ")

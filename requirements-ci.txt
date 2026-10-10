@@ -1,0 +1,15 @@
+# Lightweight set for the test-suite: no torch, no model downloads (EMBED_BACKEND=hash in tests).
+pydantic>=2.6
+python-dotenv>=1.0
+numpy>=1.26
+Pillow>=10.0
+pypdfium2>=4.30
+qdrant-client>=1.10
+rank_bm25>=0.2.2
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+reportlab>=4.0
+pytest>=8.0
+ruff>=0.6

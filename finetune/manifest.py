@@ -14,7 +14,8 @@ import random
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
+from collections.abc import Iterable
 
 from voicevault.eval.asr_metrics import normalize, script_of
 

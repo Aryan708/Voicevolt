@@ -13,3 +13,5 @@ runs/
 models/
 data/asr/
 reports/asr/utterances.csv
+.ruff_cache/
+eval/*.local.jsonl
