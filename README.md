@@ -1,5 +1,7 @@
 # 🎙️ VoiceVault
 
+[![CI](https://github.com/Aryan708/Voicevolt/actions/workflows/ci.yml/badge.svg)](https://github.com/Aryan708/Voicevolt/actions/workflows/ci.yml)
+
 **A voice-first multimodal RAG copilot.** Ask your meetings, lectures, slide decks, PDFs and scanned
 documents questions *out loud*, in English, Hindi or Hinglish, and get a spoken answer that cites the
 exact video timestamp, slide or page, with the image as proof.
@@ -52,6 +54,10 @@ A deeper walk-through (data model, threading, latency budget, failure handling) 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick start
+
+```bash
+git clone https://github.com/Aryan708/Voicevolt.git && cd Voicevolt
+```
 
 ### 1. Offline demo: 2 minutes, no API keys, no model downloads
 ```bash

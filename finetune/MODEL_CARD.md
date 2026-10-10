@@ -21,7 +21,7 @@ metrics:
 # whisper-small-hinglish (LoRA)
 
 `openai/whisper-small` fine-tuned with LoRA for **Hindi and Hindi-English code-switched (Hinglish)** speech,
-built as the speech-recognition component of [VoiceVault](https://github.com/YOUR_USERNAME/voicevault), a
+built as the speech-recognition component of [VoiceVault](https://github.com/Aryan708/Voicevolt), a
 voice-first multimodal RAG copilot.
 
 ## Results

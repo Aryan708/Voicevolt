@@ -3,7 +3,7 @@
 ## Resume entry
 
 **VoiceVault: Voice-first Multimodal RAG Copilot** · Python, PyTorch, Hugging Face (Whisper, PEFT), CLIP, Qdrant, FastAPI, Claude/GPT/Llama
-· [GitHub](https://github.com/YOUR_USERNAME/voicevault) · [Demo](https://youtu.be/...)
+· [GitHub](https://github.com/Aryan708/Voicevolt) · [Demo](https://youtu.be/...)
 
 - Built a voice assistant that answers spoken English/Hindi questions over meeting videos, slide decks and scanned
   documents, citing exact timestamps and pages; streamed LLM output to sentence-level TTS with barge-in, reaching
